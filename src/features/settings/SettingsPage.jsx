@@ -10,7 +10,7 @@ function SettingsPage() {
         <p className="text-sm font-medium uppercase tracking-wide text-mutedBlue-700">
           Workspace controls
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-charcoal">Settings</h2>
+        <h2 className="mt-2 text-xl font-semibold text-charcoal sm:text-2xl">Settings</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
           Configure profile metadata, security preferences, and placeholder integration details for
           future platform connections.
@@ -27,9 +27,13 @@ function SettingsPage() {
           </Card.Header>
           <Card.Content className="space-y-4">
             <Input label="Display name" name="displayName" defaultValue="Security Console" />
-            <Input label="Organization" name="organization" defaultValue="Enterprise Compliance Office" />
+            <Input
+              label="Organization"
+              name="organization"
+              defaultValue="Enterprise Compliance Office"
+            />
             <Input label="Contact email" name="email" defaultValue="security@example.com" type="email" />
-            <Button>Save profile</Button>
+            <Button className="w-full sm:w-auto">Save profile</Button>
           </Card.Content>
         </Card>
 
@@ -59,7 +63,7 @@ function SettingsPage() {
               </span>
               <input className="h-5 w-5 accent-slate-700" type="checkbox" defaultChecked />
             </label>
-            <Button variant="secondary">
+            <Button className="w-full sm:w-auto" variant="secondary">
               <KeyRound className="h-4 w-4" />
               Rotate local token placeholder
             </Button>

@@ -15,7 +15,7 @@ function FileUpload({ onFilesChange }) {
     <div className="space-y-4">
       <label
         className={cn(
-          'flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed bg-white px-6 py-10 text-center transition-colors',
+          'flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed bg-white px-4 py-8 text-center transition-colors sm:min-h-56 sm:px-6 sm:py-10',
           isDragging
             ? 'border-mutedBlue-500 bg-mutedBlue-50'
             : 'border-slate-300 hover:border-mutedBlue-500 hover:bg-slate-50',
@@ -49,7 +49,7 @@ function FileUpload({ onFilesChange }) {
           {files.map((file) => (
             <div
               key={`${file.name}-${file.size}`}
-              className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white p-4"
+              className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:gap-4 sm:p-4"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <FileCheck2 className="h-5 w-5 shrink-0 text-mutedBlue-700" />

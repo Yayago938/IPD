@@ -21,11 +21,11 @@ function HashVerification() {
           hint="Mock validation only. No cryptographic verification is performed."
         />
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button>
+          <Button className="w-full sm:w-auto">
             <ShieldCheck className="h-4 w-4" />
             Verify signature
           </Button>
-          <Button variant="secondary">
+          <Button className="w-full sm:w-auto" variant="secondary">
             <Fingerprint className="h-4 w-4" />
             Compare hash
           </Button>
@@ -33,8 +33,16 @@ function HashVerification() {
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <p className="text-sm font-semibold text-charcoal">Signature result panel</p>
           <div className="mt-4 space-y-3">
-            <VerificationStatus label="Certificate issuer" value="SecureWipe Authority CA" status="verified" />
-            <VerificationStatus label="Detached signature" value="Awaiting uploaded signature" status="pending" />
+            <VerificationStatus
+              label="Certificate issuer"
+              value="SecureWipe Authority CA"
+              status="verified"
+            />
+            <VerificationStatus
+              label="Detached signature"
+              value="Awaiting uploaded signature"
+              status="pending"
+            />
             <VerificationStatus label="Hash comparison" value="Ready for review" status="review" />
           </div>
         </div>

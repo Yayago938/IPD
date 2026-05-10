@@ -1,24 +1,14 @@
 import {
-  FileText,
-  LayoutDashboard,
-  Settings,
-  ShieldCheck,
   ShieldHalf,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { NAV_ITEMS } from '@/utils/constants';
 import { cn } from '@/utils/helpers';
-
-const icons = {
-  LayoutDashboard,
-  ShieldCheck,
-  FileText,
-  Settings,
-};
+import { navIcons } from '@/components/layout/navIcons';
 
 function Sidebar() {
   return (
-    <aside className="hidden w-72 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
       <div className="flex h-20 items-center gap-3 border-b border-slate-100 px-6">
         <span className="flex h-11 w-11 items-center justify-center rounded-md bg-charcoal text-white">
           <ShieldHalf className="h-6 w-6" />
@@ -31,7 +21,7 @@ function Sidebar() {
 
       <nav className="space-y-1 px-4 py-6">
         {NAV_ITEMS.map((item) => {
-          const Icon = icons[item.icon];
+          const Icon = navIcons[item.icon];
           return (
             <NavLink
               key={item.path}

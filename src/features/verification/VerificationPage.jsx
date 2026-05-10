@@ -8,7 +8,9 @@ function VerificationPage() {
         <p className="text-sm font-medium uppercase tracking-wide text-mutedBlue-700">
           Evidence intake
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-charcoal">Certificate Verification</h2>
+        <h2 className="mt-2 text-xl font-semibold text-charcoal sm:text-2xl">
+          Certificate Verification
+        </h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
           Upload certificate evidence, enter reported hashes, and review signature validation states
           before approving secure wipe records.

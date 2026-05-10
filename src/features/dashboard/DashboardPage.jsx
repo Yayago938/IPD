@@ -14,7 +14,9 @@ function DashboardPage() {
         <p className="text-sm font-medium uppercase tracking-wide text-mutedBlue-700">
           Compliance overview
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-charcoal">Wipe Verification Dashboard</h2>
+        <h2 className="mt-2 text-xl font-semibold text-charcoal sm:text-2xl">
+          Wipe Verification Dashboard
+        </h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
           Review certificate integrity, wipe completion evidence, and audit readiness across secure
           deletion workflows.
@@ -50,7 +52,7 @@ function DashboardPage() {
           </Card.Header>
           <Card.Content className="p-0">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-100 text-left text-sm">
+              <table className="min-w-[760px] divide-y divide-slate-100 text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-6 py-3 font-semibold">Job</th>

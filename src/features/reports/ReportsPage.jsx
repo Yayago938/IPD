@@ -13,21 +13,23 @@ function ReportsPage() {
           <p className="text-sm font-medium uppercase tracking-wide text-mutedBlue-700">
             Audit evidence
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-charcoal">Reports and Wipe Results</h2>
+          <h2 className="mt-2 text-xl font-semibold text-charcoal sm:text-2xl">
+            Reports and Wipe Results
+          </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
             Review wipe result summaries, export evidence bundles, and inspect recent audit events.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Button variant="secondary">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap xl:w-auto">
+          <Button className="w-full sm:w-auto" variant="secondary">
             <FileSpreadsheet className="h-4 w-4" />
             Export CSV
           </Button>
-          <Button variant="secondary">
+          <Button className="w-full sm:w-auto" variant="secondary">
             <Printer className="h-4 w-4" />
             Print report
           </Button>
-          <Button>
+          <Button className="w-full sm:w-auto">
             <Download className="h-4 w-4" />
             Export bundle
           </Button>
