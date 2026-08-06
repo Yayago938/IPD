@@ -1,7 +1,7 @@
 import sys
 from datetime import datetime
-
-from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
+from file_shredder import FileShredder
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication,
@@ -75,6 +75,11 @@ class AppStyles:
         }
         QPushButton:pressed {
             background: #111a29;
+        }
+        QPushButton:disabled {
+            background: #10151f;
+            border-color: #1c2636;
+            color: #566577;
         }
         QPushButton#PrimaryButton {
             background: #2563eb;
@@ -180,6 +185,11 @@ class AppStyles:
         QPushButton:hover {
             background: #eff6ff;
             border-color: #2563eb;
+        }
+        QPushButton:disabled {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #94a3b8;
         }
         QPushButton#PrimaryButton {
             background: #2563eb;
@@ -318,6 +328,36 @@ class SimulatedProgress:
             QMessageBox.information(None, "Simulation Complete", self.done_message)
 
 
+class ShredWorker(QThread):
+    """
+    Runs FileShredder.shred() on a background thread so the GUI
+    stays responsive during a (potentially slow) real overwrite pass.
+    """
+
+    progress_updated = Signal(int)
+    log_message = Signal(str)
+    finished_result = Signal(bool, str)
+
+    def __init__(self, filepath, passes):
+        super().__init__()
+        self.filepath = filepath
+        self.passes = passes
+
+    def run(self):
+        try:
+            shredder = FileShredder(
+                passes=self.passes,
+                progress_callback=self.progress_updated.emit,
+                log_callback=self.log_message.emit,
+            )
+            shredder.shred(self.filepath)
+            self.finished_result.emit(
+                True, "File was securely overwritten and deleted."
+            )
+        except Exception as exc:  # surfaced in the UI rather than crashing the app
+            self.finished_result.emit(False, str(exc))
+
+
 class DashboardPage(QWidget):
     def __init__(self, log_bus, navigate_callback):
         super().__init__()
@@ -336,7 +376,11 @@ class DashboardPage(QWidget):
 
         status = Card("System Status")
         status.layout.addWidget(self.muted_label("Windows Environment Detected"))
-        status.layout.addWidget(self.muted_label("Prototype mode: all wipe actions are simulated."))
+        status.layout.addWidget(
+            self.muted_label(
+                "File Wiper performs real secure deletion. Folder/Disk wiping is still simulated."
+            )
+        )
         grid.addWidget(status, 0, 0)
 
         device = Card("Selected Device")
@@ -359,12 +403,7 @@ class DashboardPage(QWidget):
         layout.addStretch()
 
     def quick_action(self, action, page_index, navigate_callback):
-        QMessageBox.information(
-            self,
-            "Simulated Quick Action",
-            f"{action} selected. This prototype will navigate to the UI page only.",
-        )
-        self.log_bus.add(f"Quick action selected: {action} (SIMULATED)")
+        self.log_bus.add(f"Quick action selected: {action}")
         navigate_callback(page_index)
 
     @staticmethod
@@ -376,11 +415,23 @@ class DashboardPage(QWidget):
 
 
 class FileWiperPage(QWidget):
+    """
+    Real, functional file wiper backed by FileShredder.
+    Runs the shred operation on a QThread and streams progress/log
+    updates back to the UI via signals.
+    """
+
+    WIPE_MODES = [
+        ("Quick Delete - 1 Pass (zeros)", 1),
+        ("Secure Overwrite - 3 Pass (random + zero)", 3),
+        ("Paranoid - 7 Pass", 7),
+    ]
+
     def __init__(self, log_bus):
         super().__init__()
         self.log_bus = log_bus
-        self.selected_file = "No file selected"
-        self.progress = None
+        self.selected_file = None
+        self.worker = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -390,21 +441,27 @@ class FileWiperPage(QWidget):
         title.setObjectName("PageTitle")
         layout.addWidget(title)
 
-        card = Card("File Wipe Simulation")
+        card = Card("Secure File Deletion")
         layout.addWidget(card)
 
-        pick_button = QPushButton("Choose File")
-        pick_button.clicked.connect(self.pick_file)
-        self.file_label = QLabel(self.selected_file)
+        self.pick_button = QPushButton("Choose File")
+        self.pick_button.clicked.connect(self.pick_file)
+        self.file_label = QLabel("No file selected")
         self.file_label.setObjectName("MutedText")
         self.file_label.setWordWrap(True)
 
         self.method = QComboBox()
-        self.method.addItems(["Quick Delete (simulated)", "Secure Overwrite (simulated)"])
+        self.method.addItems([label for label, _ in self.WIPE_MODES])
 
-        start_button = QPushButton("Start Wipe")
-        start_button.setObjectName("PrimaryButton")
-        start_button.clicked.connect(self.start_simulation)
+        warning = QLabel(
+            "This permanently overwrites and deletes the selected file. This cannot be undone."
+        )
+        warning.setStyleSheet("color: #fca5a5; font-weight: 700;")
+        warning.setWordWrap(True)
+
+        self.start_button = QPushButton("Start Secure Wipe")
+        self.start_button.setObjectName("DangerButton")
+        self.start_button.clicked.connect(self.confirm_and_start)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
@@ -413,41 +470,75 @@ class FileWiperPage(QWidget):
         self.log_panel.setReadOnly(True)
         self.log_panel.setMinimumHeight(190)
 
-        card.layout.addWidget(pick_button)
+        card.layout.addWidget(self.pick_button)
         card.layout.addWidget(self.file_label)
         card.layout.addWidget(QLabel("Wipe method"))
         card.layout.addWidget(self.method)
-        card.layout.addWidget(start_button)
+        card.layout.addWidget(warning)
+        card.layout.addWidget(self.start_button)
         card.layout.addWidget(self.progress_bar)
         card.layout.addWidget(self.log_panel)
 
         layout.addStretch()
 
     def pick_file(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Select File for Simulation")
+        path, _ = QFileDialog.getOpenFileName(self, "Select File to Securely Delete")
         if path:
             self.selected_file = path
             self.file_label.setText(path)
-            self.log_bus.add(f"File selected for simulated wipe: {path}")
+            self.log_bus.add(f"File selected for secure wipe: {path}")
 
-    def start_simulation(self):
-        QMessageBox.information(self, "Simulation Only", "No file will be deleted or modified.")
-        self.log_panel.clear()
-        self.log_panel.append("Simulated file wipe started")
-        self.log_bus.add("Simulated file wipe started")
-        steps = [
-            (18, "Scanning file..."),
-            (45, "Overwriting sectors..."),
-            (72, "Verifying simulated wipe pass..."),
-            (100, "File wipe complete (SIMULATED)"),
-        ]
-        self.progress = SimulatedProgress(
-            self.progress_bar,
-            steps,
-            self.append_log,
-            "File wipe simulation completed.",
+    def confirm_and_start(self):
+        if not self.selected_file:
+            QMessageBox.warning(self, "No File Selected", "Choose a file before starting a wipe.")
+            return
+
+        response = QMessageBox.warning(
+            self,
+            "Confirm Secure Deletion",
+            f"This will permanently overwrite and delete:\n\n{self.selected_file}\n\n"
+            "This action CANNOT be undone. Continue?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
         )
-        self.progress.start()
+        if response != QMessageBox.Yes:
+            self.log_bus.add("File wipe cancelled by user")
+            return
+
+        self.start_wipe()
+
+    def start_wipe(self):
+        label, passes = self.WIPE_MODES[self.method.currentIndex()]
+
+        self.log_panel.clear()
+        self.progress_bar.setValue(0)
+        self.append_log(f"Starting secure wipe ({label})")
+
+        self.pick_button.setEnabled(False)
+        self.start_button.setEnabled(False)
+        self.method.setEnabled(False)
+
+        self.worker = ShredWorker(self.selected_file, passes)
+        self.worker.progress_updated.connect(self.progress_bar.setValue)
+        self.worker.log_message.connect(self.append_log)
+        self.worker.finished_result.connect(self.on_wipe_finished)
+        self.worker.start()
+
+    def on_wipe_finished(self, success, message):
+        self.pick_button.setEnabled(True)
+        self.start_button.setEnabled(True)
+        self.method.setEnabled(True)
+
+        if success:
+            self.append_log(message)
+            QMessageBox.information(self, "Wipe Complete", message)
+            self.selected_file = None
+            self.file_label.setText("No file selected")
+        else:
+            self.append_log(f"Wipe failed: {message}")
+            QMessageBox.critical(self, "Wipe Failed", message)
+
+        self.worker = None
 
     def append_log(self, message):
         self.log_panel.append(message)
@@ -644,7 +735,7 @@ class LogsPage(QWidget):
         title.setObjectName("PageTitle")
         layout.addWidget(title)
 
-        card = Card("Simulated Action Console")
+        card = Card("Action Console")
         layout.addWidget(card)
 
         self.console = QTextEdit()
@@ -694,7 +785,7 @@ class SettingsPage(QWidget):
         theme_row.addWidget(self.theme_toggle)
 
         self.default_mode = QComboBox()
-        self.default_mode.addItems(["Quick Delete (simulated)", "Secure Overwrite (simulated)"])
+        self.default_mode.addItems([label for label, _ in FileWiperPage.WIPE_MODES])
 
         self.audit = QCheckBox("Enable audit logging")
         self.audit.setChecked(True)
@@ -751,7 +842,7 @@ class MainWindow(QMainWindow):
 
         self.nav.setCurrentRow(0)
         self.apply_theme("Dark")
-        self.log_bus.add("SecureWipe Pro GUI prototype started")
+        self.log_bus.add("SecureWipe Pro GUI started")
 
     def create_sidebar(self):
         sidebar = QFrame()
@@ -775,7 +866,7 @@ class MainWindow(QMainWindow):
         self.nav.currentRowChanged.connect(self.navigate_to)
         layout.addWidget(self.nav)
 
-        mode = QLabel("UI PROTOTYPE ONLY\nNo deletion, formatting, or hardware access")
+        mode = QLabel("File Wiper performs real, permanent secure deletion.\nFolder/Disk wiping is still simulated.")
         mode.setObjectName("MutedText")
         mode.setWordWrap(True)
         mode.setAlignment(Qt.AlignCenter)
