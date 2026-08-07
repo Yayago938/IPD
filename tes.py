@@ -73,6 +73,10 @@ EXECUTABLE_EXTENSIONS = {
     ".exe",".dll",".sys",".drv",".ocx",".cpl",
     ".msi",".msp",".msu",".efi",".scr",".com",".cat",
 }
+# Files with these extensions are executable, driver, installer, or operating
+# system support files. A folder wipe must never delete them solely because
+# their containing folder is otherwise safe to clean.
+OS_PROTECTED_EXTENSIONS = frozenset(EXECUTABLE_EXTENSIONS)
 APP_ROOT_MARKERS = [
     "c:\\program files\\","c:\\program files (x86)\\","c:\\programdata\\",
 ]
@@ -153,6 +157,11 @@ COL_DEFS = [
 # ---------------------------------------------------------------------------
 # Classification logic
 # ---------------------------------------------------------------------------
+
+def is_os_file_type(filepath):
+    """Return True when *filepath* has a protected Windows system file type."""
+    return Path(filepath).suffix.lower() in OS_PROTECTED_EXTENSIONS
+
 
 def classify_path(filepath):
     try:
